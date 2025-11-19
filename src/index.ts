@@ -10,5 +10,19 @@
 export { CognipeerClient } from './client';
 export { CognipeerWebchat } from './webchat';
 export * from './types';
-export * from './webchat-types';
+export type {
+  WebchatConfig,
+  WebchatIframeConfig,
+  WebchatWidgetConfig,
+  WebchatUrlOptions,
+  WebchatEventData,
+  WebchatEventListener,
+  WebchatEventType,
+  WebchatToolResult,
+  WebchatPosition,
+  WebchatTheme,
+  WebchatLogo,
+  WebchatContact,
+  ClientTool,
+} from './webchat-types';
 export { CognipeerClient as default } from './client';

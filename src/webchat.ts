@@ -8,6 +8,7 @@ import type {
   WebchatEventType,
   WebchatToolResult,
   WebchatPosition,
+  ClientTool,
 } from './webchat-types';
 
 /**
@@ -44,6 +45,7 @@ export class CognipeerWebchat {
   private iframe?: HTMLIFrameElement;
   private eventListeners: Map<WebchatEventType, Set<WebchatEventListener>>;
   private messageListener?: (event: MessageEvent) => void;
+  private clientTools: Map<string, ClientTool>;
 
   constructor(config: WebchatConfig) {
     if (!config.hookId) {
@@ -52,8 +54,14 @@ export class CognipeerWebchat {
 
     this.hookId = config.hookId;
     this.config = config;
-    this.baseUrl = config.apiUrl || 'https://app.cognipeer.com';
+    this.baseUrl = config.baseUrl || 'https://app.cognipeer.com';
     this.eventListeners = new Map();
+    this.clientTools = new Map();
+
+    // Register client tools if provided
+    if (config.tools && Array.isArray(config.tools)) {
+      config.tools.forEach(tool => this.registerTool(tool));
+    }
 
     // Setup postMessage listener for iframe communication
     if (typeof window !== 'undefined') {
@@ -76,11 +84,108 @@ export class CognipeerWebchat {
         return;
       }
 
+      // Handle tool-call events automatically
+      if (data.type === 'tool-call' && data.data) {
+        this.handleToolCall(data.data);
+      }
+
       // Emit event to listeners
       this.emit(data.type, data);
     };
 
     window.addEventListener('message', this.messageListener);
+  }
+
+  /**
+   * Handle tool call from the AI
+   */
+  private async handleToolCall(toolCallData: any): Promise<void> {
+    const { executionId, toolName, args } = toolCallData;
+    
+    const tool = this.clientTools.get(toolName);
+    if (!tool) {
+      console.warn(`[Webchat] Client tool '${toolName}' not found. Available tools:`, Array.from(this.clientTools.keys()));
+      this.sendToolResult({
+        executionId,
+        success: false,
+        output: '',
+        error: `Tool '${toolName}' not found on client`
+      });
+      return;
+    }
+
+    try {
+      console.log(`[Webchat] Executing client tool: ${toolName}`, args);
+      const result = await tool.execute(args);
+      const output = typeof result === 'string' ? result : JSON.stringify(result);
+      console.log(`[Webchat] Tool execution successful, sending result:`, { executionId, outputLength: output.length });
+      
+      this.sendToolResult({
+        executionId,
+        success: true,
+        output
+      });
+    } catch (error: any) {
+      console.error(`[Webchat] Client tool '${toolName}' execution failed:`, error);
+      this.sendToolResult({
+        executionId,
+        success: false,
+        output: '',
+        error: error.message || 'Tool execution failed'
+      });
+    }
+  }
+
+  /**
+   * Register a client-side tool
+   * 
+   * @example
+   * ```typescript
+   * webchat.registerTool({
+   *   name: 'get_current_time',
+   *   description: 'Get the current time',
+   *   execute: async () => {
+   *     return new Date().toISOString();
+   *   }
+   * });
+   * ```
+   */
+  registerTool(tool: ClientTool): void {
+    if (!tool.name || !tool.description || typeof tool.execute !== 'function') {
+      throw new Error('Invalid tool definition. Required: name, description, execute function');
+    }
+    
+    this.clientTools.set(tool.name, tool);
+    console.log(`[Webchat] Registered client tool: ${tool.name}`);
+    
+    // Only notify iframe if it's already mounted and ready
+    // For widget mode, tools are passed via URL on iframe creation
+    if (this.iframe && this.iframe.contentWindow) {
+      this.postMessage({
+        type: 'register-client-tool',
+        data: {
+          name: tool.name,
+          description: tool.description,
+          parameters: tool.parameters
+        }
+      });
+    }
+  }
+
+  /**
+   * Unregister a client-side tool
+   */
+  unregisterTool(toolName: string): void {
+    this.clientTools.delete(toolName);
+    console.log(`[Webchat] Unregistered client tool: ${toolName}`);
+    
+    // Only notify iframe if it's mounted
+    if (this.iframe && this.iframe.contentWindow) {
+      this.postMessage({
+        type: 'unregister-client-tool',
+        data: { name: toolName }
+      });
+    }
   }
 
   /**
@@ -120,6 +225,19 @@ export class CognipeerWebchat {
 
     if (options?.forceNew) {
       params.append('forceNew', 'true');
+    }
+
+    // Add client tools if any are registered
+    if (this.clientTools.size > 0) {
+      const toolDefinitions = Array.from(this.clientTools.values()).map(tool => ({
+        type: 'function',
+        function: {
+          name: tool.name,
+          description: tool.description,
+          parameters: tool.parameters
+        }
+      }));
+      params.append('clientTools', JSON.stringify(toolDefinitions));
     }
 
     const queryString = params.toString();
@@ -262,7 +380,18 @@ export class CognipeerWebchat {
    */
   private postMessage(message: any): void {
     if (this.iframe && this.iframe.contentWindow) {
-      this.iframe.contentWindow.postMessage(message, '*');
+      try {
+        this.iframe.contentWindow.postMessage(message, '*');
+        console.log('[Webchat SDK] Message sent to iframe:', message.type);
+      } catch (error) {
+        console.error('[Webchat SDK] Failed to send message to iframe:', error);
+      }
+    } else {
+      console.warn('[Webchat SDK] Cannot send message - iframe not ready:', { 
+        hasIframe: !!this.iframe, 
+        hasContentWindow: !!(this.iframe && this.iframe.contentWindow),
+        messageType: message.type 
+      });
     }
   }
 
@@ -291,6 +420,11 @@ export class CognipeerWebchat {
    * ```
    */
   sendToolResult(result: WebchatToolResult): void {
+    console.log('[Webchat SDK] Sending tool result to iframe:', { 
+      hasIframe: !!this.iframe, 
+      hasContentWindow: !!(this.iframe && this.iframe.contentWindow),
+      executionId: result.executionId 
+    });
     this.postMessage({
       type: 'tool-result',
       data: result,
@@ -395,13 +529,22 @@ export class CognipeerWebchat {
       outline: none;
     `;
     
-    // Add icon
-    button.innerHTML = config.icon || `
+    // Define icons
+    const chatIcon = config.icon || `
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M20 2H4C2.9 2 2 2.9 2 4V22L6 18H20C21.1 18 22 17.1 22 16V4C22 2.9 21.1 2 20 2Z" 
               fill="${iconColor}"/>
       </svg>
     `;
+    
+    const closeIcon = `
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M18 6L6 18M6 6L18 18" stroke="${iconColor}" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    `;
+    
+    // Set initial icon
+    button.innerHTML = chatIcon;
 
     // Add hover effect
     button.addEventListener('mouseenter', () => {
@@ -426,39 +569,10 @@ export class CognipeerWebchat {
       display: none;
       flex-direction: column;
       overflow: hidden;
+      z-index: -1;
     `;
 
-    // Create close button
-    const closeButton = document.createElement('button');
-    closeButton.style.cssText = `
-      position: absolute;
-      top: 12px;
-      right: 12px;
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      background: rgba(0, 0, 0, 0.1);
-      border: none;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1;
-      transition: background 0.2s ease;
-    `;
-    closeButton.innerHTML = `
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-      </svg>
-    `;
-    closeButton.addEventListener('mouseenter', () => {
-      closeButton.style.background = 'rgba(0, 0, 0, 0.2)';
-    });
-    closeButton.addEventListener('mouseleave', () => {
-      closeButton.style.background = 'rgba(0, 0, 0, 0.1)';
-    });
-
-    chatWindow.appendChild(closeButton);
+    // Remove the old close button as we'll use the main button for closing now
 
     // Append to container
     container.appendChild(button);
@@ -474,7 +588,8 @@ export class CognipeerWebchat {
       isOpen = !isOpen;
       if (isOpen) {
         chatWindow.style.display = 'flex';
-        button.style.display = 'none';
+        chatWindow.style.zIndex = '1';
+        button.innerHTML = closeIcon;
         
         // Mount iframe if not already mounted
         if (!webchat.iframe) {
@@ -492,13 +607,13 @@ export class CognipeerWebchat {
         webchat.emit('open', {});
       } else {
         chatWindow.style.display = 'none';
-        button.style.display = 'flex';
+        chatWindow.style.zIndex = '-1';
+        button.innerHTML = chatIcon;
         webchat.emit('close', {});
       }
     };
 
     button.addEventListener('click', toggle);
-    closeButton.addEventListener('click', toggle);
 
     // Auto-open if configured
     if (config.autoOpen) {

@@ -125,10 +125,10 @@ export interface WebchatConfig {
   hookId: string;
   
   /**
-   * API base URL
-   * @default 'https://api.cognipeer.com/v1'
+   * Base URL for the webchat web application
+   * @default 'https://app.cognipeer.com'
    */
-  apiUrl?: string;
+  baseUrl?: string;
   
   /**
    * Theme customization
@@ -197,6 +197,11 @@ export interface WebchatConfig {
    * Center description text (shown when no messages)
    */
   centerText?: string;
+  
+  /**
+   * Client-side tools that can be called by the AI
+   */
+  tools?: ClientTool[];
 }
 
 /**
@@ -451,3 +456,35 @@ export interface WebchatToolResult {
    */
   error?: string;
 }
+
+/**
+ * Client tool definition
+ */
+export interface ClientTool {
+  /**
+   * Unique tool name
+   */
+  name: string;
+  
+  /**
+   * Tool description for the AI
+   */
+  description: string;
+  
+  /**
+   * JSON schema for tool parameters
+   */
+  parameters?: {
+    type: 'object';
+    properties: Record<string, any>;
+    required?: string[];
+  };
+  
+  /**
+   * Tool execution function
+   * @param args - Arguments from the AI
+   * @returns Promise resolving to the tool result (string or object that will be stringified)
+   */
+  execute: (args: Record<string, any>) => Promise<string | any>;
+}
+

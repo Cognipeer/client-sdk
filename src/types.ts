@@ -133,10 +133,17 @@ export type ResponseFormat = 'text' | 'json';
  */
 export interface CognipeerClientConfig {
   /**
-   * API base URL
+   * API base URL for SDK endpoints
    * @default 'https://api.cognipeer.com'
    */
   apiUrl?: string;
+  
+  /**
+   * Base URL for webchat web application
+   * Used for iframe, widget, and URL generation
+   * @default 'https://app.cognipeer.com'
+   */
+  baseUrl?: string;
   
   /**
    * API authentication token

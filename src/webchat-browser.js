@@ -21,9 +21,15 @@
 
       this.hookId = config.hookId;
       this.config = config;
-      this.baseUrl = config.apiUrl || 'https://app.cognipeer.com';
+      this.baseUrl = config.baseUrl || 'https://app.cognipeer.com';
       this.eventListeners = new Map();
+      this.clientTools = new Map();
       this.iframe = null;
+
+      // Register client tools if provided
+      if (config.tools && Array.isArray(config.tools)) {
+        config.tools.forEach(tool => this.registerTool(tool));
+      }
 
       if (typeof window !== 'undefined') {
         this.setupMessageListener();
@@ -41,10 +47,90 @@
           return;
         }
 
+        // Handle tool-call events automatically
+        if (data.type === 'tool-call' && data.data) {
+          this.handleToolCall(data.data);
+        }
+
         this.emit(data.type, data);
       };
 
       window.addEventListener('message', this.messageListener);
+    }
+
+    handleToolCall(toolCallData) {
+      const executionId = toolCallData.executionId;
+      const toolName = toolCallData.toolName;
+      const args = toolCallData.args;
+      
+      const tool = this.clientTools.get(toolName);
+      if (!tool) {
+        console.warn('[Webchat] Client tool "' + toolName + '" not found. Available tools:', Array.from(this.clientTools.keys()));
+        this.sendToolResult({
+          executionId: executionId,
+          success: false,
+          output: '',
+          error: 'Tool "' + toolName + '" not found on client'
+        });
+        return;
+      }
+
+      console.log('[Webchat] Executing client tool: ' + toolName, args);
+      
+      Promise.resolve(tool.execute(args))
+        .then(function(result) {
+          const output = typeof result === 'string' ? result : JSON.stringify(result);
+          console.log('[Webchat] Tool execution successful, sending result:', { executionId: executionId, outputLength: output.length });
+          this.sendToolResult({
+            executionId: executionId,
+            success: true,
+            output: output
+          });
+        }.bind(this))
+        .catch(function(error) {
+          console.error('[Webchat] Client tool "' + toolName + '" execution failed:', error);
+          this.sendToolResult({
+            executionId: executionId,
+            success: false,
+            output: '',
+            error: error.message || 'Tool execution failed'
+          });
+        }.bind(this));
+    }
+
+    registerTool(tool) {
+      if (!tool.name || !tool.description || typeof tool.execute !== 'function') {
+        throw new Error('Invalid tool definition. Required: name, description, execute function');
+      }
+      
+      this.clientTools.set(tool.name, tool);
+      console.log('[Webchat] Registered client tool: ' + tool.name);
+      
+      // Only notify iframe if it's already mounted and ready
+      // For widget mode, tools are passed via URL on iframe creation
+      if (this.iframe && this.iframe.contentWindow) {
+        this.postMessage({
+          type: 'register-client-tool',
+          data: {
+            name: tool.name,
+            description: tool.description,
+            parameters: tool.parameters
+          }
+        });
+      }
+    }
+
+    unregisterTool(toolName) {
+      this.clientTools.delete(toolName);
+      console.log('[Webchat] Unregistered client tool: ' + toolName);
+      
+      // Only notify iframe if it's mounted
+      if (this.iframe && this.iframe.contentWindow) {
+        this.postMessage({
+          type: 'unregister-client-tool',
+          data: { name: toolName }
+        });
+      }
     }
 
     generateUrl(options) {
@@ -73,6 +159,22 @@
 
       if (options.forceNew) {
         params.append('forceNew', 'true');
+      }
+
+      // Add client tools if any are registered
+      if (this.clientTools.size > 0) {
+        const toolDefinitions = [];
+        this.clientTools.forEach(function(tool) {
+          toolDefinitions.push({
+            type: 'function',
+            function: {
+              name: tool.name,
+              description: tool.description,
+              parameters: tool.parameters
+            }
+          });
+        });
+        params.append('clientTools', JSON.stringify(toolDefinitions));
       }
 
       const queryString = params.toString();
@@ -158,11 +260,27 @@
 
     postMessage(message) {
       if (this.iframe && this.iframe.contentWindow) {
-        this.iframe.contentWindow.postMessage(message, '*');
+        try {
+          this.iframe.contentWindow.postMessage(message, '*');
+          console.log('[Webchat SDK] Message sent to iframe:', message.type);
+        } catch (error) {
+          console.error('[Webchat SDK] Failed to send message to iframe:', error);
+        }
+      } else {
+        console.warn('[Webchat SDK] Cannot send message - iframe not ready:', { 
+          hasIframe: !!this.iframe, 
+          hasContentWindow: !!(this.iframe && this.iframe.contentWindow),
+          messageType: message.type 
+        });
       }
     }
 
     sendToolResult(result) {
+      console.log('[Webchat SDK] Sending tool result to iframe:', { 
+        hasIframe: !!this.iframe, 
+        hasContentWindow: !!(this.iframe && this.iframe.contentWindow),
+        executionId: result.executionId 
+      });
       this.postMessage({
         type: 'tool-result',
         data: result
@@ -232,10 +350,17 @@
         'transition: all 0.3s ease;' +
         'outline: none;';
       
-      button.innerHTML = config.icon || 
+      var chatIcon = config.icon || 
         '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">' +
         '<path d="M20 2H4C2.9 2 2 2.9 2 4V22L6 18H20C21.1 18 22 17.1 22 16V4C22 2.9 21.1 2 20 2Z" fill="' + iconColor + '"/>' +
         '</svg>';
+      
+      var closeIcon = 
+        '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+        '<path d="M18 6L6 18M6 6L18 18" stroke="' + iconColor + '" stroke-width="2" stroke-linecap="round"/>' +
+        '</svg>';
+      
+      button.innerHTML = chatIcon;
 
       button.addEventListener('mouseenter', function() {
         button.style.transform = 'scale(1.05)';
@@ -257,36 +382,9 @@
         'box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);' +
         'display: none;' +
         'flex-direction: column;' +
-        'overflow: hidden;';
+        'overflow: hidden;' +
+        'z-index: -1;';
 
-      const closeButton = document.createElement('button');
-      closeButton.style.cssText =
-        'position: absolute;' +
-        'top: 12px;' +
-        'right: 12px;' +
-        'width: 32px;' +
-        'height: 32px;' +
-        'border-radius: 50%;' +
-        'background: rgba(0, 0, 0, 0.1);' +
-        'border: none;' +
-        'cursor: pointer;' +
-        'display: flex;' +
-        'align-items: center;' +
-        'justify-content: center;' +
-        'z-index: 1;' +
-        'transition: background 0.2s ease;';
-      closeButton.innerHTML =
-        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">' +
-        '<path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' +
-        '</svg>';
-      closeButton.addEventListener('mouseenter', function() {
-        closeButton.style.background = 'rgba(0, 0, 0, 0.2)';
-      });
-      closeButton.addEventListener('mouseleave', function() {
-        closeButton.style.background = 'rgba(0, 0, 0, 0.1)';
-      });
-
-      chatWindow.appendChild(closeButton);
       container.appendChild(button);
       container.appendChild(chatWindow);
       document.body.appendChild(container);
@@ -298,7 +396,8 @@
         isOpen = !isOpen;
         if (isOpen) {
           chatWindow.style.display = 'flex';
-          button.style.display = 'none';
+          chatWindow.style.zIndex = '1';
+          button.innerHTML = closeIcon;
           
           if (!webchat.iframe) {
             const iframe = document.createElement('iframe');
@@ -311,13 +410,13 @@
           webchat.emit('open', {});
         } else {
           chatWindow.style.display = 'none';
-          button.style.display = 'flex';
+          chatWindow.style.zIndex = '-1';
+          button.innerHTML = chatIcon;
           webchat.emit('close', {});
         }
       };
 
       button.addEventListener('click', toggle);
-      closeButton.addEventListener('click', toggle);
 
       if (config.autoOpen) {
         setTimeout(toggle, 500);

@@ -33,6 +33,7 @@ import type {
  */
 export class CognipeerClient {
   private readonly apiUrl: string;
+  private readonly baseUrl: string;
   private readonly token: string;
   private readonly fetchImpl: typeof fetch;
   private readonly autoExecuteTools: boolean;
@@ -41,8 +42,10 @@ export class CognipeerClient {
 
   constructor(config: CognipeerClientConfig) {
     this.apiUrl = config.apiUrl || 'https://api.cognipeer.com/v1';
+    this.baseUrl = config.baseUrl || 'https://app.cognipeer.com';
     this.token = config.token;
-    this.fetchImpl = config.fetch || fetch;
+    // Bind fetch to window to preserve 'this' context in browser
+    this.fetchImpl = config.fetch ? config.fetch.bind(globalThis) : fetch.bind(globalThis);
     this.autoExecuteTools = config.autoExecuteTools !== false;
     this.maxToolExecutions = config.maxToolExecutions || 10;
     this.timeout = config.timeout || 60000;
@@ -476,6 +479,25 @@ export class CognipeerClient {
   get flows() {
     return {
       execute: this.executeFlow.bind(this),
+    };
+  }
+
+  /**
+   * List all available peers (AI assistants)
+   * 
+   * @example
+   * ```typescript
+   * const peers = await client.peers.list();
+   * console.log(peers);
+   * ```
+   */
+  async listPeers(): Promise<any[]> {
+    return this.request<any[]>('/sdk/peer');
+  }
+
+  get peers() {
+    return {
+      list: this.listPeers.bind(this),
     };
   }
 }

@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cognipeer Webchat - Vanilla JS Example</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: #f5f5f5;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+    }
+    
+    p {
+      color: #666;
+      margin-bottom: 30px;
+    }
+    
+    .demo-section {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .demo-section h2 {
+      margin-top: 0;
+      color: #00b5a5;
+    }
+    
+    #chat-container {
+      width: 100%;
+      height: 600px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+    
+    button {
+      padding: 10px 20px;
+      background: #00b5a5;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.2s;
+    }
+    
+    button:hover {
+      background: #009688;
+    }
+    
+    button.secondary {
+      background: #6c757d;
+    }
+    
+    button.secondary:hover {
+      background: #5a6268;
+    }
+    
+    .code-block {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 6px;
+      overflow-x: auto;
+      margin: 10px 0;
+    }
+    
+    code {
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🚀 Cognipeer Webchat Examples</h1>
+    <p>Interactive examples showing all three integration methods</p>
+    
+    <!-- Example 1: Iframe Embed -->
+    <div class="demo-section">
+      <h2>1. Iframe Embed</h2>
+      <p>Embed chat directly in a container element</p>
+      <div id="chat-container"></div>
+      <div class="button-group">
+        <button onclick="sendCustomMessage()">Send Message</button>
+        <button onclick="startNewConversation()">New Conversation</button>
+        <button class="secondary" onclick="destroyIframe()">Destroy</button>
+      </div>
+    </div>
+    
+    <!-- Example 2: URL Generation -->
+    <div class="demo-section">
+      <h2>2. URL Generation</h2>
+      <p>Generate URLs with custom parameters</p>
+      <div class="code-block">
+        <code id="generated-url">Click button to generate URL</code>
+      </div>
+      <div class="button-group">
+        <button onclick="generateUrl()">Generate URL</button>
+        <button onclick="openInNewWindow()">Open in New Window</button>
+      </div>
+    </div>
+    
+    <!-- Example 3: Floating Widget -->
+    <div class="demo-section">
+      <h2>3. Floating Widget</h2>
+      <p>Add a floating chat button (check bottom-right corner)</p>
+      <div class="button-group">
+        <button onclick="createWidget()">Create Widget</button>
+        <button onclick="openWidget()">Open Widget</button>
+        <button onclick="closeWidget()">Close Widget</button>
+        <button class="secondary" onclick="destroyWidget()">Destroy Widget</button>
+      </div>
+    </div>
+    
+    <!-- Event Log -->
+    <div class="demo-section">
+      <h2>Event Log</h2>
+      <div class="code-block" id="event-log" style="max-height: 200px; overflow-y: auto;">
+        <code>Events will appear here...</code>
+      </div>
+      <button class="secondary" onclick="clearLog()">Clear Log</button>
+    </div>
+  </div>
+  
+  <!-- Load Cognipeer Webchat SDK -->
+  <script src="https://unpkg.com/@cognipeer/sdk@latest/dist/webchat-browser.min.js"></script>
+  
+  <script>
+    // Replace with your actual hook ID
+    const HOOK_ID = 'your-hook-id';
+    
+    let webchatInstance = null;
+    let widgetInstance = null;
+    
+    // Initialize iframe embed on page load
+    window.addEventListener('DOMContentLoaded', function() {
+      initializeIframe();
+    });
+    
+    function initializeIframe() {
+      webchatInstance = new CognipeerWebchat({
+        hookId: HOOK_ID,
+        containerId: 'chat-container',
+        theme: {
+          primary: '#00b5a5',
+          radius: '8px'
+        },
+        contact: {
+          email: 'demo@example.com',
+          name: 'Demo User'
+        },
+        context: {
+          source: 'vanilla-js-example',
+          page: 'demo'
+        }
+      });
+      
+      // Setup event listeners
+      webchatInstance.on('ready', function() {
+        logEvent('ready', 'Webchat is ready!');
+      });
+      
+      webchatInstance.on('message-sent', function(event) {
+        logEvent('message-sent', 'User: ' + event.data.content);
+      });
+      
+      webchatInstance.on('message-received', function(event) {
+        logEvent('message-received', 'AI: ' + event.data.content);
+      });
+      
+      webchatInstance.on('conversation-created', function(event) {
+        logEvent('conversation-created', 'ID: ' + event.data.conversationId);
+      });
+      
+      webchatInstance.on('error', function(event) {
+        logEvent('error', event.data.message);
+      });
+      
+      webchatInstance.mount();
+      logEvent('init', 'Iframe webchat initialized');
+    }
+    
+    function sendCustomMessage() {
+      if (webchatInstance) {
+        webchatInstance.sendMessage('Hello from parent page!');
+        logEvent('action', 'Sent custom message');
+      }
+    }
+    
+    function startNewConversation() {
+      if (webchatInstance) {
+        webchatInstance.newConversation();
+        logEvent('action', 'Started new conversation');
+      }
+    }
+    
+    function destroyIframe() {
+      if (webchatInstance) {
+        webchatInstance.destroy();
+        webchatInstance = null;
+        logEvent('action', 'Destroyed iframe webchat');
+        
+        // Recreate after 2 seconds
+        setTimeout(function() {
+          initializeIframe();
+        }, 2000);
+      }
+    }
+    
+    function generateUrl() {
+      const tempWebchat = new CognipeerWebchat({ hookId: HOOK_ID });
+      const url = tempWebchat.generateUrl({
+        contact: { email: 'demo@example.com' },
+        context: { source: 'url-generation' },
+        params: { utm_source: 'demo' }
+      });
+      document.getElementById('generated-url').textContent = url;
+      logEvent('url-generation', 'URL generated');
+    }
+    
+    function openInNewWindow() {
+      const tempWebchat = new CognipeerWebchat({ hookId: HOOK_ID });
+      const url = tempWebchat.generateUrl();
+      window.open(url, 'Cognipeer Chat', 'width=400,height=600');
+      logEvent('action', 'Opened in new window');
+    }
+    
+    function createWidget() {
+      if (widgetInstance) {
+        logEvent('warning', 'Widget already exists');
+        return;
+      }
+      
+      widgetInstance = CognipeerWebchat.createWidget({
+        hookId: HOOK_ID,
+        position: 'bottom-right',
+        buttonColor: '#00b5a5',
+        theme: {
+          primary: '#00b5a5'
+        }
+      });
+      
+      widgetInstance.on('open', function() {
+        logEvent('widget-open', 'Widget opened');
+      });
+      
+      widgetInstance.on('close', function() {
+        logEvent('widget-close', 'Widget closed');
+      });
+      
+      logEvent('widget', 'Widget created');
+    }
+    
+    function openWidget() {
+      if (widgetInstance) {
+        widgetInstance.open();
+      } else {
+        logEvent('warning', 'Widget not created yet');
+      }
+    }
+    
+    function closeWidget() {
+      if (widgetInstance) {
+        widgetInstance.close();
+      }
+    }
+    
+    function destroyWidget() {
+      if (widgetInstance) {
+        widgetInstance.destroy();
+        widgetInstance = null;
+        logEvent('widget', 'Widget destroyed');
+      }
+    }
+    
+    function logEvent(type, message) {
+      const log = document.getElementById('event-log');
+      const timestamp = new Date().toLocaleTimeString();
+      const entry = document.createElement('div');
+      entry.textContent = '[' + timestamp + '] ' + type.toUpperCase() + ': ' + message;
+      log.appendChild(entry);
+      log.scrollTop = log.scrollHeight;
+    }
+    
+    function clearLog() {
+      document.getElementById('event-log').innerHTML = '<code>Events cleared...</code>';
+    }
+  </script>
+</body>
+</html>

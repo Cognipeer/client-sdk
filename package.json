@@ -1,0 +1,63 @@
+{
+  "name": "@cognipeer/sdk",
+  "version": "1.0.0",
+  "description": "Official JavaScript/TypeScript SDK for Cognipeer AI - Build conversational AI applications with client-side tool execution",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "docs/WEBCHAT.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs",
+    "test": "vitest",
+    "lint": "eslint src --ext .ts",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "cognipeer",
+    "ai",
+    "chatbot",
+    "conversation",
+    "llm",
+    "function-calling",
+    "client-tools",
+    "sdk",
+    "typescript"
+  ],
+  "author": "Cognipeer",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cognipeer/sdk.git"
+  },
+  "bugs": {
+    "url": "https://github.com/cognipeer/sdk/issues"
+  },
+  "homepage": "https://cognipeer.com",
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "eslint": "^8.55.0",
+    "tsup": "^8.0.1",
+    "typescript": "^5.3.3",
+    "vitepress": "^1.0.0",
+    "vitest": "^1.0.4"
+  },
+  "dependencies": {
+    "cross-fetch": "^4.0.0"
+  }
+}

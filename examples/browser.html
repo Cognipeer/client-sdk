@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cognipeer SDK - Browser Example</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    
+    .container {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      max-width: 700px;
+      width: 100%;
+      height: 700px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 24px;
+      text-align: center;
+    }
+    
+    .header h1 {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+    
+    .header p {
+      opacity: 0.9;
+      font-size: 14px;
+    }
+    
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+      background: #f8f9fa;
+    }
+    
+    .message {
+      margin-bottom: 16px;
+      display: flex;
+      align-items: flex-start;
+      animation: slideIn 0.3s ease;
+    }
+    
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .message.user {
+      justify-content: flex-end;
+    }
+    
+    .message-bubble {
+      max-width: 70%;
+      padding: 12px 16px;
+      border-radius: 18px;
+      word-wrap: break-word;
+      line-height: 1.5;
+    }
+    
+    .message.user .message-bubble {
+      background: #667eea;
+      color: white;
+    }
+    
+    .message.ai .message-bubble {
+      background: white;
+      color: #333;
+      border: 1px solid #e0e0e0;
+    }
+    
+    .message.system .message-bubble {
+      background: #fef3c7;
+      color: #92400e;
+      border: 1px solid #fcd34d;
+      text-align: center;
+      font-size: 13px;
+    }
+    
+    .typing {
+      padding: 12px 16px;
+      background: white;
+      border-radius: 18px;
+      color: #666;
+      font-style: italic;
+      border: 1px solid #e0e0e0;
+    }
+    
+    .input-area {
+      padding: 20px;
+      border-top: 1px solid #e0e0e0;
+      background: white;
+      display: flex;
+      gap: 12px;
+    }
+    
+    input {
+      flex: 1;
+      padding: 14px 18px;
+      border: 2px solid #e0e0e0;
+      border-radius: 24px;
+      outline: none;
+      font-size: 14px;
+      transition: border-color 0.3s;
+    }
+    
+    input:focus {
+      border-color: #667eea;
+    }
+    
+    button {
+      padding: 14px 28px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 24px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: background 0.3s;
+    }
+    
+    button:hover:not(:disabled) {
+      background: #5568d3;
+    }
+    
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    
+    .tools-indicator {
+      font-size: 12px;
+      color: #666;
+      margin-top: 4px;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🤖 Cognipeer AI Chat</h1>
+      <p>Powered by Cognipeer SDK with Client Tools</p>
+    </div>
+    
+    <div class="messages" id="messages">
+      <div class="message system">
+        <div class="message-bubble">
+          👋 Hello! I'm your AI assistant with access to live data. Try asking me about the time, date, or browser info!
+        </div>
+      </div>
+    </div>
+    
+    <div class="input-area">
+      <input 
+        type="text" 
+        id="messageInput" 
+        placeholder="Type your message..."
+        onkeypress="if(event.key==='Enter' && !event.shiftKey) { event.preventDefault(); sendMessage(); }"
+      >
+      <button id="sendButton" onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+
+  <script type="module">
+    // For local development, use: import { CognipeerClient } from '../dist/index.mjs';
+    // For production, use CDN as shown below:
+    // import { CognipeerClient } from 'https://cdn.jsdelivr.net/npm/@cognipeer/sdk/+esm';
+    
+    // Mock for this example - replace with actual implementation
+    class CognipeerClient {
+      constructor(config) {
+        this.config = config;
+        console.log('Cognipeer Client initialized');
+      }
+      
+      get conversations() {
+        return {
+          create: async (options) => {
+            // Simulate API call
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            return {
+              conversationId: 'demo-conv-' + Date.now(),
+              messageId: 'demo-msg-' + Date.now(),
+              content: 'This is a demo response. In production, replace this with actual Cognipeer SDK.',
+              tools: [],
+              status: 'done'
+            };
+          },
+          sendMessage: async (options) => {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            return {
+              conversationId: options.conversationId,
+              messageId: 'demo-msg-' + Date.now(),
+              content: 'Demo response to: ' + options.content,
+              tools: [],
+              status: 'done'
+            };
+          }
+        };
+      }
+    }
+    
+    const client = new CognipeerClient({
+      token: 'demo-token' // Replace with your actual token
+    });
+    
+    // Define client tools
+    const browserTools = [
+      {
+        type: 'function',
+        function: {
+          name: 'getCurrentTime',
+          description: 'Get current time',
+          parameters: { type: 'object', properties: {} }
+        },
+        implementation: async () => {
+          return new Date().toLocaleTimeString();
+        }
+      },
+      {
+        type: 'function',
+        function: {
+          name: 'getBrowserInfo',
+          description: 'Get browser and system information',
+          parameters: { type: 'object', properties: {} }
+        },
+        implementation: async () => {
+          return JSON.stringify({
+            userAgent: navigator.userAgent,
+            language: navigator.language,
+            platform: navigator.platform,
+            screenSize: `${window.screen.width}x${window.screen.height}`,
+            online: navigator.onLine
+          });
+        }
+      }
+    ];
+    
+    let conversationId = null;
+    const messagesDiv = document.getElementById('messages');
+    const messageInput = document.getElementById('messageInput');
+    const sendButton = document.getElementById('sendButton');
+    
+    function addMessage(role, content, tools = null) {
+      const messageDiv = document.createElement('div');
+      messageDiv.className = `message ${role}`;
+      
+      const bubbleDiv = document.createElement('div');
+      bubbleDiv.className = 'message-bubble';
+      bubbleDiv.textContent = content;
+      
+      messageDiv.appendChild(bubbleDiv);
+      
+      if (tools && tools.length > 0) {
+        const toolsDiv = document.createElement('div');
+        toolsDiv.className = 'tools-indicator';
+        toolsDiv.textContent = `🔧 Tools used: ${tools.map(t => t.name).join(', ')}`;
+        messageDiv.appendChild(toolsDiv);
+      }
+      
+      messagesDiv.appendChild(messageDiv);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+    
+    function showTyping() {
+      const typingDiv = document.createElement('div');
+      typingDiv.className = 'message ai';
+      typingDiv.id = 'typing-indicator';
+      
+      const bubbleDiv = document.createElement('div');
+      bubbleDiv.className = 'typing';
+      bubbleDiv.textContent = 'AI is thinking...';
+      
+      typingDiv.appendChild(bubbleDiv);
+      messagesDiv.appendChild(typingDiv);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+    
+    function hideTyping() {
+      const typingDiv = document.getElementById('typing-indicator');
+      if (typingDiv) typingDiv.remove();
+    }
+    
+    window.sendMessage = async function() {
+      const content = messageInput.value.trim();
+      if (!content) return;
+      
+      addMessage('user', content);
+      messageInput.value = '';
+      sendButton.disabled = true;
+      showTyping();
+      
+      try {
+        let response;
+        
+        if (!conversationId) {
+          response = await client.conversations.create({
+            peerId: 'demo-peer',
+            messages: [{ role: 'user', content }],
+            clientTools: browserTools
+          });
+          conversationId = response.conversationId;
+        } else {
+          response = await client.conversations.sendMessage({
+            conversationId,
+            content,
+            clientTools: browserTools
+          });
+        }
+        
+        hideTyping();
+        addMessage('ai', response.content, response.tools);
+      } catch (error) {
+        hideTyping();
+        addMessage('system', `Error: ${error.message}`);
+      } finally {
+        sendButton.disabled = false;
+        messageInput.focus();
+      }
+    };
+    
+    // Focus input on load
+    messageInput.focus();
+  </script>
+</body>
+</html>

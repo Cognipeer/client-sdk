@@ -10,12 +10,12 @@ The most basic example - a single question and answer:
 import { CognipeerClient } from '@cognipeer/sdk';
 
 const client = new CognipeerClient({
-  token: process.env.COGNIPEER_TOKEN!
+  token: process.env.COGNIPEER_TOKEN!,  // PAT token
+  hookId: process.env.COGNIPEER_HOOK_ID!
 });
 
 async function simpleChat() {
   const response = await client.conversations.create({
-    peerId: 'your-peer-id',
     messages: [
       { role: 'user', content: 'What is the capital of France?' }
     ]
@@ -35,12 +35,12 @@ Maintaining context across multiple messages:
 ```typescript
 async function multiTurnChat() {
   const client = new CognipeerClient({
-    token: process.env.COGNIPEER_TOKEN!
+    token: process.env.COGNIPEER_TOKEN!,  // PAT token
+    hookId: process.env.COGNIPEER_HOOK_ID!
   });
 
-  // First message
+  // First message - with PAT token, userId is automatic
   const initial = await client.conversations.create({
-    peerId: 'your-peer-id',
     messages: [
       { role: 'user', content: 'My name is Alice and I like pizza.' }
     ]
@@ -68,11 +68,11 @@ Start a conversation with existing history:
 ```typescript
 async function withHistory() {
   const client = new CognipeerClient({
-    token: process.env.COGNIPEER_TOKEN!
+    token: process.env.COGNIPEER_TOKEN!,  // PAT token
+    hookId: process.env.COGNIPEER_HOOK_ID!
   });
 
   const response = await client.conversations.create({
-    peerId: 'your-peer-id',
     messages: [
       { role: 'user', content: 'I have a meeting at 3 PM' },
       { role: 'ai', content: 'I\'ve noted that. Your meeting is at 3 PM.' },
@@ -89,14 +89,16 @@ withHistory().catch(console.error);
 
 ## Listing Conversations
 
-Retrieve all conversations for a specific peer:
+Retrieve all conversations:
 
 ```typescript
 async function listConversations() {
   const client = new CognipeerClient({
-    token: process.env.COGNIPEER_TOKEN!
+    token: process.env.COGNIPEER_TOKEN!,  // PAT token
+    hookId: process.env.COGNIPEER_HOOK_ID!
   });
 
+  // With PAT token - automatically filtered by user
   const result = await client.conversations.list({
     filter: { peerId: 'your-peer-id' },
     page: 1,

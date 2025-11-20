@@ -286,6 +286,8 @@ export type WebchatEventType =
   | 'message-received'
   | 'conversation-created'
   | 'tool-call'
+  | 'tool-execution-start'
+  | 'tool-execution-end'
   | 'error';
 
 /**
@@ -373,6 +375,32 @@ export interface WebchatToolCallEvent extends WebchatEvent {
 }
 
 /**
+ * Event when a client tool execution starts
+ */
+export interface WebchatToolExecutionStartEvent extends WebchatEvent {
+  type: 'tool-execution-start';
+  data: {
+    executionId: string;
+    toolName: string;
+    args: Record<string, any>;
+  };
+}
+
+/**
+ * Event when a client tool execution ends
+ */
+export interface WebchatToolExecutionEndEvent extends WebchatEvent {
+  type: 'tool-execution-end';
+  data: {
+    executionId: string;
+    toolName: string;
+    success: boolean;
+    output?: string;
+    error?: string;
+  };
+}
+
+/**
  * Event when an error occurs
  */
 export interface WebchatErrorEvent extends WebchatEvent {
@@ -394,6 +422,8 @@ export type WebchatEventData =
   | WebchatMessageReceivedEvent
   | WebchatConversationCreatedEvent
   | WebchatToolCallEvent
+  | WebchatToolExecutionStartEvent
+  | WebchatToolExecutionEndEvent
   | WebchatErrorEvent;
 
 /**

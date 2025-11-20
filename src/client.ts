@@ -1,24 +1,15 @@
 import fetch from 'cross-fetch';
 import type {
   CognipeerClientConfig,
-  CreateConversationOptions,
-  CreateConversationResponse,
-  SendMessageOptions,
-  SendMessageResponse,
-  ResumeMessageResponse,
-  ListConversationsOptions,
-  ListConversationsResponse,
-  GetMessagesOptions,
-  ConversationMessage,
-  ExecuteFlowOptions,
-  ExecuteFlowResponse,
-  Conversation,
   ExecutableClientTool,
   PendingAction,
   ToolResult,
   ClientTool,
   ApiError,
+  ResumeMessageResponse,
 } from './types';
+import type { IConversations, IFlows, IPeers, IUsers, IChannels, IContacts } from './interfaces';
+import { ConversationsResource, FlowsResource, PeersResource, UsersResource, ChannelsResource, ContactsResource } from './resources';
 
 /**
  * Main Cognipeer SDK Client
@@ -26,33 +17,88 @@ import type {
  * @example
  * ```typescript
  * const client = new CognipeerClient({
- *   token: 'your-api-token',
- *   apiUrl: 'https://api.cognipeer.com' // optional
+ *   token: 'pat_your-personal-access-token',
+ *   hookId: 'your-channel-hook-id',
+ *   apiUrl: 'https://api.cognipeer.com/v1' // optional
  * });
+ * 
+ * // Access resources via properties
+ * await client.conversations.create({ messages: [...] });
+ * await client.conversations.list({ page: 1, limit: 10 });
+ * await client.flows.execute({ flowId: 'flow-id', inputs: {...} });
+ * await client.peers.get();
+ * await client.users.get();
+ * await client.channels.get();
  * ```
  */
 export class CognipeerClient {
   private readonly apiUrl: string;
   private readonly baseUrl: string;
   private readonly token: string;
+  private readonly hookId: string;
   private readonly fetchImpl: typeof fetch;
   private readonly autoExecuteTools: boolean;
   private readonly maxToolExecutions: number;
   private readonly timeout: number;
+  private readonly onToolStart?: (toolName: string, args: any) => void;
+  private readonly onToolEnd?: (toolName: string, result: ToolResult) => void;
+
+  // Resource interfaces
+  public readonly conversations: IConversations;
+  public readonly flows: IFlows;
+  public readonly peers: IPeers;
+  public readonly users: IUsers;
+  public readonly channels: IChannels;
+  public readonly contacts: IContacts;
 
   constructor(config: CognipeerClientConfig) {
     this.apiUrl = config.apiUrl || 'https://api.cognipeer.com/v1';
     this.baseUrl = config.baseUrl || 'https://app.cognipeer.com';
     this.token = config.token;
+    this.hookId = config.hookId;
     // Bind fetch to window to preserve 'this' context in browser
     this.fetchImpl = config.fetch ? config.fetch.bind(globalThis) : fetch.bind(globalThis);
     this.autoExecuteTools = config.autoExecuteTools !== false;
     this.maxToolExecutions = config.maxToolExecutions || 10;
     this.timeout = config.timeout || 60000;
+    this.onToolStart = config.onToolStart;
+    this.onToolEnd = config.onToolEnd;
 
     if (!this.token) {
       throw new Error('Cognipeer API token is required');
     }
+    
+    if (!this.hookId) {
+      throw new Error('Hook ID is required');
+    }
+
+    // Initialize resource interfaces
+    this.conversations = new ConversationsResource(
+      this.request.bind(this),
+      this.toolToApiFormat.bind(this),
+      this.handleToolExecution.bind(this),
+      this.autoExecuteTools
+    );
+
+    this.flows = new FlowsResource(
+      this.request.bind(this)
+    );
+
+    this.peers = new PeersResource(
+      this.request.bind(this)
+    );
+
+    this.users = new UsersResource(
+      this.request.bind(this)
+    );
+
+    this.channels = new ChannelsResource(
+      this.request.bind(this)
+    );
+
+    this.contacts = new ContactsResource(
+      this.request.bind(this)
+    );
   }
 
   /**
@@ -73,6 +119,7 @@ export class CognipeerClient {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${this.token}`,
+          'x-hook-id': this.hookId,
           ...options.headers,
         },
         signal: controller.signal,
@@ -134,20 +181,48 @@ export class CognipeerClient {
       };
     }
 
+    if (this.onToolStart) {
+      try {
+        this.onToolStart(toolName, args);
+      } catch (error) {
+        console.error('Error in onToolStart callback:', error);
+      }
+    }
+
     try {
       const result = await tool.implementation(args);
-      return {
+      const toolResult: ToolResult = {
         executionId: '',
         success: true,
         output: typeof result === 'string' ? result : JSON.stringify(result),
       };
+
+      if (this.onToolEnd) {
+        try {
+          this.onToolEnd(toolName, toolResult);
+        } catch (error) {
+          console.error('Error in onToolEnd callback:', error);
+        }
+      }
+
+      return toolResult;
     } catch (error: any) {
-      return {
+      const toolResult: ToolResult = {
         executionId: '',
         success: false,
         output: '',
         error: error.message || 'Tool execution failed',
       };
+
+      if (this.onToolEnd) {
+        try {
+          this.onToolEnd(toolName, toolResult);
+        } catch (err) {
+          console.error('Error in onToolEnd callback:', err);
+        }
+      }
+
+      return toolResult;
     }
   }
 
@@ -177,7 +252,7 @@ export class CognipeerClient {
       toolResult.executionId = currentPendingAction.executionId;
 
       // Resume the message with the tool result
-      const resumeResponse = await this.resumeMessage({
+      const resumeResponse = await this.conversations.resumeMessage({
         conversationId,
         messageId,
         toolResult,
@@ -198,307 +273,6 @@ export class CognipeerClient {
 
     // This should not be reached, but TypeScript requires a return
     throw new Error('Unexpected state in tool execution loop');
-  }
-
-  /**
-   * Create a new conversation
-   * 
-   * @example
-   * ```typescript
-   * // Simple conversation creation
-   * const { conversationId } = await client.conversations.create({
-   *   peerId: 'peer-id'
-   * });
-   * 
-   * // With initial message and client tools
-   * const response = await client.conversations.create({
-   *   peerId: 'peer-id',
-   *   messages: [{ role: 'user', content: 'Hello!' }],
-   *   clientTools: [{
-   *     type: 'function',
-   *     function: {
-   *       name: 'getCurrentWeather',
-   *       description: 'Get current weather',
-   *       parameters: {
-   *         type: 'object',
-   *         properties: {
-   *           location: { type: 'string' }
-   *         },
-   *         required: ['location']
-   *       }
-   *     },
-   *     implementation: async ({ location }) => {
-   *       return `Weather in ${location}: Sunny, 72°F`;
-   *     }
-   *   }]
-   * });
-   * ```
-   */
-  async createConversation(
-    options: CreateConversationOptions
-  ): Promise<CreateConversationResponse> {
-    const { clientTools, ...apiOptions } = options;
-    
-    const requestBody: any = {
-      ...apiOptions,
-      clientTools: clientTools?.map(t => this.toolToApiFormat(t)),
-    };
-
-    const response = await this.request<CreateConversationResponse>(
-      '/sdk/conversation',
-      {
-        method: 'POST',
-        body: JSON.stringify(requestBody),
-      }
-    );
-
-    // Handle automatic tool execution if enabled
-    if (
-      this.autoExecuteTools &&
-      response.status === 'client_tool_call' &&
-      response.pendingAction &&
-      response.messageId &&
-      clientTools
-    ) {
-      const finalResponse = await this.handleToolExecution(
-        response.conversationId,
-        response.messageId,
-        response.pendingAction,
-        clientTools
-      );
-
-      return {
-        ...response,
-        content: finalResponse.content,
-        tools: finalResponse.tools,
-        status: finalResponse.status,
-        pendingAction: undefined,
-      };
-    }
-
-    return response;
-  }
-
-  /**
-   * Send a message to an existing conversation
-   * 
-   * @example
-   * ```typescript
-   * const response = await client.conversations.sendMessage({
-   *   conversationId: 'conv-id',
-   *   content: 'Tell me more',
-   *   clientTools: [...]
-   * });
-   * ```
-   */
-  async sendMessage(
-    options: SendMessageOptions
-  ): Promise<SendMessageResponse> {
-    const { conversationId, clientTools, ...apiOptions } = options;
-    
-    const requestBody: any = {
-      ...apiOptions,
-      clientTools: clientTools?.map(t => this.toolToApiFormat(t)),
-    };
-
-    const response = await this.request<SendMessageResponse>(
-      `/sdk/conversation/${conversationId}/message`,
-      {
-        method: 'POST',
-        body: JSON.stringify(requestBody),
-      }
-    );
-
-    // Handle automatic tool execution if enabled
-    if (
-      this.autoExecuteTools &&
-      response.status === 'client_tool_call' &&
-      response.pendingAction &&
-      clientTools
-    ) {
-      const finalResponse = await this.handleToolExecution(
-        response.conversationId,
-        response.messageId,
-        response.pendingAction,
-        clientTools
-      );
-
-      return {
-        ...response,
-        content: finalResponse.content,
-        tools: finalResponse.tools,
-        status: finalResponse.status,
-        pendingAction: undefined,
-      };
-    }
-
-    return response;
-  }
-
-  /**
-   * Resume a message with a client tool result
-   * 
-   * This is typically used when autoExecuteTools is disabled or for manual control.
-   * 
-   * @example
-   * ```typescript
-   * const response = await client.conversations.resumeMessage({
-   *   conversationId: 'conv-id',
-   *   messageId: 'msg-id',
-   *   toolResult: {
-   *     executionId: 'exec-id',
-   *     success: true,
-   *     output: 'Tool result'
-   *   }
-   * });
-   * ```
-   */
-  async resumeMessage(options: {
-    conversationId: string;
-    messageId: string;
-    toolResult: ToolResult;
-  }): Promise<ResumeMessageResponse> {
-    const { conversationId, messageId, toolResult } = options;
-
-    return this.request<ResumeMessageResponse>(
-      `/sdk/conversation/${conversationId}/message/${messageId}/resume`,
-      {
-        method: 'POST',
-        body: JSON.stringify({ toolResult }),
-      }
-    );
-  }
-
-  /**
-   * List conversations
-   * 
-   * @example
-   * ```typescript
-   * const { data, total } = await client.conversations.list({
-   *   filter: { peerId: 'peer-id' },
-   *   page: 1,
-   *   limit: 10
-   * });
-   * ```
-   */
-  async listConversations(
-    options: ListConversationsOptions = {}
-  ): Promise<ListConversationsResponse> {
-    return this.request<ListConversationsResponse>(
-      '/sdk/conversation/list',
-      {
-        method: 'POST',
-        body: JSON.stringify(options),
-      }
-    );
-  }
-
-  /**
-   * Get a single conversation by ID
-   * 
-   * @example
-   * ```typescript
-   * const conversation = await client.conversations.get('conv-id');
-   * ```
-   */
-  async getConversation(conversationId: string): Promise<Conversation> {
-    return this.request<Conversation>(
-      `/sdk/conversation/${conversationId}`,
-      {
-        method: 'GET',
-      }
-    );
-  }
-
-  /**
-   * Get messages from a conversation
-   * 
-   * @example
-   * ```typescript
-   * const messages = await client.conversations.getMessages({
-   *   conversationId: 'conv-id',
-   *   messagesCount: 20
-   * });
-   * ```
-   */
-  async getMessages(
-    options: GetMessagesOptions
-  ): Promise<ConversationMessage[]> {
-    const { conversationId, messagesCount = 10 } = options;
-    
-    return this.request<ConversationMessage[]>(
-      `/sdk/conversation/${conversationId}/message?messagesCount=${messagesCount}`,
-      {
-        method: 'GET',
-      }
-    );
-  }
-
-  /**
-   * Execute a flow (app)
-   * 
-   * @example
-   * ```typescript
-   * const result = await client.flows.execute({
-   *   flowId: 'flow-id',
-   *   inputs: {
-   *     document: 'base64-content',
-   *     analysisType: 'detailed'
-   *   }
-   * });
-   * ```
-   */
-  async executeFlow(
-    options: ExecuteFlowOptions
-  ): Promise<ExecuteFlowResponse> {
-    const { flowId, inputs, version = 'latest' } = options;
-
-    return this.request<ExecuteFlowResponse>(
-      `/sdk/flow/${flowId}/execute?version=${version}`,
-      {
-        method: 'POST',
-        body: JSON.stringify(inputs),
-      }
-    );
-  }
-
-  /**
-   * Convenience methods grouped by resource
-   */
-  get conversations() {
-    return {
-      create: this.createConversation.bind(this),
-      sendMessage: this.sendMessage.bind(this),
-      resumeMessage: this.resumeMessage.bind(this),
-      list: this.listConversations.bind(this),
-      get: this.getConversation.bind(this),
-      getMessages: this.getMessages.bind(this),
-    };
-  }
-
-  get flows() {
-    return {
-      execute: this.executeFlow.bind(this),
-    };
-  }
-
-  /**
-   * List all available peers (AI assistants)
-   * 
-   * @example
-   * ```typescript
-   * const peers = await client.peers.list();
-   * console.log(peers);
-   * ```
-   */
-  async listPeers(): Promise<any[]> {
-    return this.request<any[]>('/sdk/peer');
-  }
-
-  get peers() {
-    return {
-      list: this.listPeers.bind(this),
-    };
   }
 }
 

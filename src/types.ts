@@ -134,7 +134,7 @@ export type ResponseFormat = 'text' | 'json';
 export interface CognipeerClientConfig {
   /**
    * API base URL for SDK endpoints
-   * @default 'https://api.cognipeer.com'
+   * @default 'https://api.cognipeer.com/v1'
    */
   apiUrl?: string;
   
@@ -146,9 +146,15 @@ export interface CognipeerClientConfig {
   baseUrl?: string;
   
   /**
-   * API authentication token
+   * API authentication token (Personal Access Token with pat_ prefix)
    */
   token: string;
+  
+  /**
+   * Hook ID for the API channel
+   * Used to identify which peer/channel to use for conversations
+   */
+  hookId: string;
   
   /**
    * Custom fetch implementation (useful for Node.js < 18)
@@ -172,22 +178,22 @@ export interface CognipeerClientConfig {
    * @default 60000
    */
   timeout?: number;
+
+  /**
+   * Callback when a client tool execution starts
+   */
+  onToolStart?: (toolName: string, args: any) => void;
+
+  /**
+   * Callback when a client tool execution ends
+   */
+  onToolEnd?: (toolName: string, result: ToolResult) => void;
 }
 
 /**
  * Options for creating a conversation
  */
 export interface CreateConversationOptions {
-  /**
-   * ID of the peer (AI agent) to use
-   */
-  peerId: string;
-  
-  /**
-   * Optional user ID to associate with the conversation
-   */
-  userId?: string;
-  
   /**
    * Optional contact ID to associate with the conversation
    */
@@ -301,6 +307,12 @@ export interface SendMessageOptions {
   content: string;
   
   /**
+   * Optional contact ID to associate with the message
+   * Only used with API tokens (not PAT tokens)
+   */
+  contactId?: string;
+  
+  /**
    * Client-side tools available for the AI to call
    */
   clientTools?: ExecutableClientTool[];
@@ -408,6 +420,11 @@ export interface Conversation {
   _id: string;
   
   /**
+   * Conversation title
+   */
+  title?: string;
+  
+  /**
    * Peer ID
    */
   peerId: string;
@@ -447,6 +464,12 @@ export interface Conversation {
  * Options for listing conversations
  */
 export interface ListConversationsOptions {
+  /**
+   * Optional contact ID to filter conversations (required when using API token)
+   * Not used with PAT tokens - PAT automatically filters by user
+   */
+  contactId?: string;
+  
   /**
    * Filter criteria
    */
@@ -596,7 +619,6 @@ export interface ExecuteFlowResponse {
    */
   [key: string]: any;
 }
-
 /**
  * API Error response
  */
@@ -615,4 +637,479 @@ export interface ApiError {
    * Additional error details
    */
   details?: any;
+}
+
+/**
+ * Peer information
+ */
+export interface Peer {
+  /**
+   * Peer ID
+   */
+  _id: string;
+  
+  /**
+   * Peer name
+   */
+  name: string;
+  
+  /**
+   * Peer description
+   */
+  description?: string;
+  
+  /**
+   * AI model ID
+   */
+  modelId: string;
+  
+  /**
+   * System prompt
+   */
+  prompt: string;
+  
+  /**
+   * Temperature setting (0-1)
+   */
+  temperature?: number;
+  
+  /**
+   * Number of messages to include in history
+   */
+  messagesCount?: number;
+  
+  /**
+   * Language setting
+   */
+  language?: string;
+  
+  /**
+   * Content type
+   */
+  contentType?: string;
+  
+  /**
+   * Datasource IDs
+   */
+  datasources?: string[];
+  
+  /**
+   * Tool IDs
+   */
+  tools?: string[];
+  
+  /**
+   * Creation timestamp
+   */
+  createdAt?: string;
+  
+  /**
+   * Update timestamp
+   */
+  updatedAt?: string;
+  
+  /**
+   * Additional properties
+   */
+  [key: string]: any;
+}
+
+/**
+ * User information
+ */
+export interface User {
+  /**
+   * User ID
+   */
+  _id: string;
+  
+  /**
+   * User email
+   */
+  email: string;
+  
+  /**
+   * First name
+   */
+  firstName: string;
+  
+  /**
+   * Last name
+   */
+  lastName: string;
+  
+  /**
+   * Display name
+   */
+  displayName: string;
+  
+  /**
+   * Workspace information
+   */
+  workspace: {
+    /**
+     * Workspace ID
+     */
+    _id: string;
+    
+    /**
+     * Workspace name
+     */
+    name: string;
+    
+    /**
+     * Workspace slug
+     */
+    slug: string;
+    
+    /**
+     * Workspace plan
+     */
+    plan: string;
+  };
+  
+  /**
+   * User roles
+   */
+  roles: string[];
+  
+  /**
+   * User groups
+   */
+  groups: string[];
+  
+  /**
+   * Creation timestamp
+   */
+  createdAt: string;
+  
+  /**
+   * User settings
+   */
+  settings: Record<string, any>;
+}
+
+/**
+ * Channel information
+ */
+export interface Channel {
+  /**
+   * Channel ID
+   */
+  _id: string;
+  
+  /**
+   * Channel name
+   */
+  name: string;
+  
+  /**
+   * Hook ID
+   */
+  hookId: string;
+  
+  /**
+   * Associated peer ID
+   */
+  peerId: string;
+  
+  /**
+   * Channel type
+   */
+  channelType: string;
+  
+  /**
+   * Gallery key
+   */
+  galleryKey: string;
+  
+  /**
+   * Whether channel is active
+   */
+  isActive: boolean;
+  
+  /**
+   * Custom prompt for this channel
+   */
+  prompt?: string;
+  
+  /**
+   * Message history limit for this channel
+   */
+  messagesCount?: number;
+  
+  /**
+   * Creation timestamp
+   */
+  createdAt: string;
+  
+  /**
+   * Update timestamp
+   */
+  updatedAt: string;
+  
+  /**
+   * Additional properties
+   */
+  [key: string]: any;
+}
+
+/**
+ * Contact information
+ */
+export interface Contact {
+  /**
+   * Contact ID
+   */
+  _id: string;
+  
+  /**
+   * Contact email address
+   */
+  email?: string;
+  
+  /**
+   * Integration ID (external system identifier)
+   */
+  integrationId?: string;
+  
+  /**
+   * Contact name
+   */
+  name?: string;
+  
+  /**
+   * Contact phone number
+   */
+  phone?: string;
+  
+  /**
+   * Additional metadata
+   */
+  metadata?: Record<string, any>;
+  
+  /**
+   * Custom properties
+   */
+  properties?: Record<string, any>;
+  
+  /**
+   * Workspace ID
+   */
+  workspaceId: string;
+  
+  /**
+   * Associated peer ID
+   */
+  peerId?: string;
+  
+  /**
+   * Contact tags
+   */
+  tags?: string[];
+  
+  /**
+   * Contact status
+   */
+  status?: string;
+  
+  /**
+   * Creation timestamp
+   */
+  createdDate?: string;
+  
+  /**
+   * Last update timestamp
+   */
+  modifiedDate?: string;
+  
+  /**
+   * Whether contact is deleted (soft delete)
+   */
+  deleted?: boolean;
+  
+  /**
+   * Additional properties
+   */
+  [key: string]: any;
+}
+
+/**
+ * Options for creating a contact
+ */
+export interface CreateContactOptions {
+  /**
+   * Contact email address
+   */
+  email?: string;
+  
+  /**
+   * Integration ID (external system identifier)
+   */
+  integrationId?: string;
+  
+  /**
+   * Contact name
+   */
+  name?: string;
+  
+  /**
+   * Contact phone number
+   */
+  phone?: string;
+  
+  /**
+   * Additional metadata
+   */
+  metadata?: Record<string, any>;
+  
+  /**
+   * Custom properties
+   */
+  properties?: Record<string, any>;
+  
+  /**
+   * Contact tags
+   */
+  tags?: string[];
+  
+  /**
+   * Contact status
+   */
+  status?: string;
+  
+  /**
+   * Additional fields
+   */
+  [key: string]: any;
+}
+
+/**
+ * Options for getting a contact
+ */
+export interface GetContactOptions {
+  /**
+   * Find contact by email address
+   */
+  email?: string;
+  
+  /**
+   * Find contact by integration ID
+   */
+  integrationId?: string;
+}
+
+/**
+ * Options for updating a contact
+ */
+export interface UpdateContactOptions {
+  /**
+   * Find contact by email address
+   */
+  email?: string;
+  
+  /**
+   * Find contact by integration ID
+   */
+  integrationId?: string;
+  
+  /**
+   * Data to update
+   */
+  data: {
+    /**
+     * Update contact name
+     */
+    name?: string;
+    
+    /**
+     * Update contact email
+     */
+    email?: string;
+    
+    /**
+     * Update contact phone
+     */
+    phone?: string;
+    
+    /**
+     * Update metadata
+     */
+    metadata?: Record<string, any>;
+    
+    /**
+     * Update custom properties
+     */
+    properties?: Record<string, any>;
+    
+    /**
+     * Update tags
+     */
+    tags?: string[];
+    
+    /**
+     * Update status
+     */
+    status?: string;
+    
+    /**
+     * Additional fields to update
+     */
+    [key: string]: any;
+  };
+}
+
+/**
+ * Options for listing contacts
+ */
+export interface ListContactsOptions {
+  /**
+   * Page number (starting from 1)
+   */
+  page?: number;
+  
+  /**
+   * Number of results per page
+   */
+  limit?: number;
+  
+  /**
+   * Filter criteria
+   */
+  filter?: Record<string, any>;
+  
+  /**
+   * Sort options
+   */
+  sort?: Record<string, 1 | -1>;
+}
+
+/**
+ * Paginated list response
+ */
+export interface PaginatedResponse<T> {
+  /**
+   * Whether the request was successful
+   */
+  success: boolean;
+  
+  /**
+   * Array of items
+   */
+  data: T[];
+  
+  /**
+   * Total number of items
+   */
+  total: number;
+  
+  /**
+   * Current page number
+   */
+  page: number;
+  
+  /**
+   * Items per page
+   */
+  limit: number;
 }

@@ -116,10 +116,24 @@ export class CognipeerWebchat {
 
     try {
       console.log(`[Webchat] Executing client tool: ${toolName}`, args);
+      
+      this.emit('tool-execution-start', {
+        executionId,
+        toolName,
+        args
+      });
+
       const result = await tool.execute(args);
       const output = typeof result === 'string' ? result : JSON.stringify(result);
       console.log(`[Webchat] Tool execution successful, sending result:`, { executionId, outputLength: output.length });
       
+      this.emit('tool-execution-end', {
+        executionId,
+        toolName,
+        success: true,
+        output
+      });
+
       this.sendToolResult({
         executionId,
         success: true,
@@ -127,6 +141,14 @@ export class CognipeerWebchat {
       });
     } catch (error: any) {
       console.error(`[Webchat] Client tool '${toolName}' execution failed:`, error);
+      
+      this.emit('tool-execution-end', {
+        executionId,
+        toolName,
+        success: false,
+        error: error.message || 'Tool execution failed'
+      });
+
       this.sendToolResult({
         executionId,
         success: false,

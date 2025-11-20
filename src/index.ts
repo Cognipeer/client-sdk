@@ -10,6 +10,7 @@
 export { CognipeerClient } from './client';
 export { CognipeerWebchat } from './webchat';
 export * from './types';
+export * from './interfaces';
 export type {
   WebchatConfig,
   WebchatIframeConfig,

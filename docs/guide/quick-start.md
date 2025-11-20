@@ -11,12 +11,14 @@ import { CognipeerClient } from '@cognipeer/sdk';
 
 // Initialize the client
 const client = new CognipeerClient({
-  token: 'your-api-token'
+  token: 'your-personal-access-token',  // PAT token (starts with pat_)
+  hookId: 'your-channel-hook-id'
 });
 
 // Create a conversation with a message
+// The peer is automatically determined from the hookId
+// With PAT token, userId is automatically set
 const response = await client.conversations.create({
-  peerId: 'your-peer-id',
   messages: [
     { role: 'user', content: 'Hello! How can you help me?' }
   ]
@@ -24,6 +26,14 @@ const response = await client.conversations.create({
 
 console.log(response.content);
 // "Hello! I'm an AI assistant. I can help you with..."
+
+// With API token, you need to provide contactId
+const apiResponse = await client.conversations.create({
+  contactId: 'contact-123',  // Required with API tokens
+  messages: [
+    { role: 'user', content: 'Hello! How can you help me?' }
+  ]
+});
 ```
 
 ## Multi-turn Conversation
@@ -33,7 +43,6 @@ To continue a conversation, send additional messages:
 ```typescript
 // Create initial conversation
 const { conversationId } = await client.conversations.create({
-  peerId: 'your-peer-id',
   messages: [
     { role: 'user', content: 'What is 2 + 2?' }
   ]
@@ -51,13 +60,45 @@ console.log(response.content);
 // "40"
 ```
 
+## List Conversations
+
+Retrieve your conversation history with pagination:
+
+```typescript
+// With PAT token - automatically filtered by authenticated user
+const { data, total, page, limit } = await client.conversations.list({
+  page: 1,
+  limit: 10
+});
+
+// With API token - contactId required
+const contactConversations = await client.conversations.list({
+  contactId: 'contact-123',  // Required with API tokens
+  page: 1,
+  limit: 10
+});
+
+console.log(`Total conversations: ${total}`);
+data.forEach(conv => {
+  console.log(`- ${conv.title} (ID: ${conv._id})`);
+});
+
+// Get a specific conversation
+const conversation = await client.conversations.get(conversationId);
+
+// Get messages from a conversation
+const messages = await client.conversations.getMessages({
+  conversationId,
+  messagesCount: 20
+});
+```
+
 ## With Client Tools
 
 The real power of Cognipeer comes from client-side tool execution. Here's how to give the AI access to custom functions:
 
 ```typescript
 const response = await client.conversations.create({
-  peerId: 'your-peer-id',
   messages: [
     { role: 'user', content: 'What time is it in Tokyo?' }
   ],
@@ -105,7 +146,6 @@ Get JSON responses from the AI by specifying a schema:
 
 ```typescript
 const response = await client.conversations.create({
-  peerId: 'your-peer-id',
   messages: [
     { role: 'user', content: 'Extract info: John Doe, age 30, lives in NYC' }
   ],
@@ -134,13 +174,13 @@ import { CognipeerClient } from '@cognipeer/sdk';
 
 const client = new CognipeerClient({
   token: process.env.COGNIPEER_TOKEN!,
-  apiUrl: 'https://api.cognipeer.com' // optional
+  hookId: process.env.COGNIPEER_HOOK_ID!,
+  apiUrl: 'https://api.cognipeer.com/v1' // optional
 });
 
 async function main() {
   // Create conversation with tools
   const response = await client.conversations.create({
-    peerId: 'your-peer-id',
     messages: [
       { role: 'user', content: 'Look up user john@example.com and tell me their name' }
     ],

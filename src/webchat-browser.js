@@ -77,10 +77,24 @@
 
       console.log('[Webchat] Executing client tool: ' + toolName, args);
       
+      this.emit('tool-execution-start', {
+        executionId: executionId,
+        toolName: toolName,
+        args: args
+      });
+      
       Promise.resolve(tool.execute(args))
         .then(function(result) {
           const output = typeof result === 'string' ? result : JSON.stringify(result);
           console.log('[Webchat] Tool execution successful, sending result:', { executionId: executionId, outputLength: output.length });
+          
+          this.emit('tool-execution-end', {
+            executionId: executionId,
+            toolName: toolName,
+            success: true,
+            output: output
+          });
+
           this.sendToolResult({
             executionId: executionId,
             success: true,
@@ -89,6 +103,14 @@
         }.bind(this))
         .catch(function(error) {
           console.error('[Webchat] Client tool "' + toolName + '" execution failed:', error);
+          
+          this.emit('tool-execution-end', {
+            executionId: executionId,
+            toolName: toolName,
+            success: false,
+            error: error.message || 'Tool execution failed'
+          });
+
           this.sendToolResult({
             executionId: executionId,
             success: false,

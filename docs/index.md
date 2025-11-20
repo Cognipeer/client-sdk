@@ -48,12 +48,42 @@ features:
 import { CognipeerClient } from '@cognipeer/sdk';
 
 const client = new CognipeerClient({
-  token: 'your-api-token'
+  token: 'pat_your-personal-access-token',
+  hookId: 'your-channel-hook-id'
 });
 
+// Get peer, user, and channel information
+const peer = await client.peers.get();
+const user = await client.users.get();
+const channel = await client.channels.get();
+
+console.log(`Using peer: ${peer.name}`);
+console.log(`Authenticated as: ${user.email}`);
+console.log(`Channel: ${channel.name}`);
+
+// Create a conversation
+const response = await client.conversations.create({
+  messages: [
+    { role: 'user', content: 'Hello! How can you help me?' }
+  ]
+});
+
+console.log(response.content);
+
+// List conversations with pagination
+const { data, total } = await client.conversations.list({
+  page: 1,
+  limit: 10
+});
+
+console.log(`You have ${total} conversations`);
+```
+
+## Client Tools Example
+
+```typescript
 // Create a conversation with client tools
 const response = await client.conversations.create({
-  peerId: 'your-peer-id',
   messages: [
     { role: 'user', content: 'What is the weather in San Francisco?' }
   ],
@@ -76,6 +106,7 @@ const response = await client.conversations.create({
     }
   }]
 });
+```
 
 console.log(response.content);
 // The AI automatically called your function and used the result!

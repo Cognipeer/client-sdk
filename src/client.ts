@@ -67,7 +67,7 @@ export class CognipeerClient {
     if (!this.token) {
       throw new Error('Cognipeer API token is required');
     }
-    
+
     if (!this.hookId) {
       throw new Error('Hook ID is required');
     }
@@ -109,7 +109,7 @@ export class CognipeerClient {
     options: RequestInit = {}
   ): Promise<T> {
     const url = `${this.apiUrl}${endpoint}`;
-    
+
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
@@ -132,18 +132,18 @@ export class CognipeerClient {
           message: response.statusText || 'Unknown error',
           statusCode: response.status,
         }));
-        
+
         throw new Error(error.message || `API request failed with status ${response.status}`);
       }
 
       return await response.json();
     } catch (error: any) {
       clearTimeout(timeoutId);
-      
+
       if (error.name === 'AbortError') {
         throw new Error(`Request timeout after ${this.timeout}ms`);
       }
-      
+
       throw error;
     }
   }
@@ -171,7 +171,7 @@ export class CognipeerClient {
     clientTools: ExecutableClientTool[]
   ): Promise<ToolResult> {
     const tool = clientTools.find(t => t.function.name === toolName);
-    
+
     if (!tool) {
       return {
         executionId: '',
@@ -258,9 +258,9 @@ export class CognipeerClient {
         toolResult,
       });
 
-      // Check if there's another pending action
-      if (resumeResponse.status === 'client_tool_call' && (resumeResponse as any).pendingAction) {
-        currentPendingAction = (resumeResponse as any).pendingAction;
+      // Check if there's another pending action (chaining multiple client tools)
+      if (resumeResponse.status === 'client_tool_call' && resumeResponse.pendingAction) {
+        currentPendingAction = resumeResponse.pendingAction;
       } else {
         // No more pending actions, return the final response
         return resumeResponse;

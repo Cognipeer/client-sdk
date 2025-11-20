@@ -408,6 +408,12 @@ export interface ResumeMessageResponse {
    * Status of the message
    */
   status: string;
+  
+  /**
+   * Pending action if another client tool execution is needed
+   * This allows chaining multiple client tool calls
+   */
+  pendingAction?: PendingAction;
 }
 
 /**

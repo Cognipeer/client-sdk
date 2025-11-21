@@ -3,7 +3,7 @@ import { defineConfig } from 'vitepress';
 export default defineConfig({
   title: 'Cognipeer SDK',
   description: 'Official JavaScript/TypeScript SDK for Cognipeer AI',
-  base: '/',
+  base: '/client-sdk/',
   
   themeConfig: {
     

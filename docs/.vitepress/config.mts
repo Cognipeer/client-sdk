@@ -6,7 +6,6 @@ export default defineConfig({
   base: '/',
   
   themeConfig: {
-    logo: '/logo.svg',
     
     nav: [
       { text: 'Guide', link: '/guide/getting-started' },
@@ -70,7 +69,7 @@ export default defineConfig({
     },
     
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/cognipeer/sdk' }
+      { icon: 'github', link: 'https://github.com/cognipeer/client-sdk' }
     ],
     
     footer: {

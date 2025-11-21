@@ -12,9 +12,6 @@ hero:
     - theme: alt
       text: View on GitHub
       link: https://github.com/cognipeer/sdk
-  image:
-    src: /logo.svg
-    alt: Cognipeer SDK
 
 features:
   - icon: 🚀

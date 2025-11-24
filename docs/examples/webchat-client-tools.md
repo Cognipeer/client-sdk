@@ -84,7 +84,7 @@ NEXT_PUBLIC_COGNIPEER_BASE_URL=https://app.cognipeer.com
 npm run dev
 ```
 
-4. Open http://localhost:3000/webchat-widget
+4. Open `http://localhost:3000/webchat-widget`
 
 5. Try asking:
    - "What time is it?"
@@ -415,7 +415,7 @@ webchat.on('tool-call', (event) => {
 
 ## Learn More
 
-- [SDK Documentation](../../README.md)
+- [SDK Documentation](https://github.com/Cognipeer/client-sdk)
 - [Webchat Guide](../WEBCHAT.md)
 - [Client Tools API Reference](../guide/client-tools.md)
-- [Live Demo](http://localhost:3000/webchat-widget)
+- [Live Demo](https://client-sdk.cognipeer.com/webchat-widget)

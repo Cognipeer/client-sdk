@@ -544,4 +544,4 @@ async function safeContactOperation() {
 
 - [Conversations API](./conversations.md) - Manage conversations with contacts
 - [Channels API](./channels.md) - API channel management
-- [Authentication](../../developers/api-reference/authentication.md) - Authentication methods
+- [Authentication](/guide/authentication) - Authentication methods

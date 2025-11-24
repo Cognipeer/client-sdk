@@ -10,7 +10,7 @@ Creates a new instance of the Cognipeer client.
 
 **Parameters:**
 
-- `config` ([`CognipeerClientConfig`](/api/types#cogniipeerclientconfig)) - Client configuration
+- `config` ([`CognipeerClientConfig`](/api/types#cognipeerclientconfig)) - Client configuration
 
 **Example:**
 

@@ -172,6 +172,6 @@ const client = new CognipeerClient({
 
 ## Related
 
-- [Authentication](../guide/authentication.md) - Learn about Personal Access Tokens
+- [Authentication](/guide/authentication) - Learn about Personal Access Tokens
 - [Channels API](./channels.md) - Get API channel information
 - [Peers API](./peers.md) - Get peer information

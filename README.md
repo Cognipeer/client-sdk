@@ -6,6 +6,8 @@ Official JavaScript/TypeScript SDK for [Cognipeer AI](https://cognipeer.com) - B
 [![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue.svg)](https://www.typescriptlang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+
+Documentation: <https://docs.cognipeer.com/client-sdk/guide/getting-started>
 ## Features
 
 - 🚀 **Simple & Intuitive** - Easy-to-use API for conversational AI

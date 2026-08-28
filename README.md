@@ -541,11 +541,11 @@ const response: SendMessageResponse = await client.conversations.create(options)
 
 ## Documentation
 
-- **[Getting Started](https://cognipeer.com/docs/sdk/getting-started)** - Installation and setup
-- **[Quick Start](https://cognipeer.com/docs/sdk/quick-start)** - Your first conversation
-- **[Client Tools](https://cognipeer.com/docs/sdk/client-tools)** - Function calling guide
-- **[API Reference](https://cognipeer.com/docs/sdk/api)** - Complete API documentation
-- **[Examples](https://cognipeer.com/docs/sdk/examples)** - Real-world examples
+- **[Getting Started](https://docs.cognipeer.com/client-sdk/guide/getting-started)** - Installation and setup
+- **[Quick Start](https://docs.cognipeer.com/client-sdk/guide/quick-start)** - Your first conversation
+- **[Client Tools](https://docs.cognipeer.com/client-sdk/guide/client-tools)** - Function calling guide
+- **[API Reference](https://docs.cognipeer.com/client-sdk/api/client)** - Complete API documentation
+- **[Examples](https://docs.cognipeer.com/client-sdk/examples/basic)** - Real-world examples
 
 ## Requirements
 
@@ -566,7 +566,7 @@ try {
 
 ## Contributing
 
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+Contributions are welcome! Open an issue or pull request in the [GitHub repository](https://github.com/Cognipeer/client-sdk).
 
 ## License
 
@@ -574,8 +574,8 @@ MIT © [Cognipeer](https://cognipeer.com)
 
 ## Support
 
-- **Documentation**: https://cognipeer.com/docs/sdk
-- **Issues**: https://github.com/cognipeer/sdk/issues
+- **Documentation**: https://docs.cognipeer.com/client-sdk/
+- **Issues**: https://github.com/Cognipeer/client-sdk/issues
 - **Email**: support@cognipeer.com
 - **Discord**: https://discord.gg/cognipeer
 

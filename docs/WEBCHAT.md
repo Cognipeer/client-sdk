@@ -637,6 +637,6 @@ useEffect(() => {
 ## Support
 
 For issues, questions, or feature requests:
-- Documentation: https://docs.cognipeer.com
-- GitHub: https://github.com/cognipeer/sdk
+- Documentation: https://docs.cognipeer.com/client-sdk/
+- GitHub: https://github.com/Cognipeer/client-sdk
 - Email: support@cognipeer.com

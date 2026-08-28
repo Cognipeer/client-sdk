@@ -69,7 +69,7 @@ export default defineConfig({
     },
     
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/cognipeer/client-sdk' }
+      { icon: 'github', link: 'https://github.com/Cognipeer/client-sdk' }
     ],
     
     footer: {

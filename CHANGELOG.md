@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.5] - 2026-08-28
+
+### Added
+- Added Node 24 GitHub Actions workflows for build validation and npm Trusted Publishing.
+- Added client tests covering authentication, hook headers, and conversation payloads.
+
+### Changed
+- Corrected npm repository, issues, and homepage metadata for `@cognipeer/sdk`.
+- Updated README and documentation links to the canonical client-sdk documentation and repository.
+
 ## [2.2.0] - 2024-12-XX
 
 ### Added
@@ -184,4 +194,5 @@ const response = await client.conversations.create({
 - File system operations
 - Email sending
 
-[1.0.0]: https://github.com/cognipeer/sdk/releases/tag/v1.0.0
+[1.0.0]: https://github.com/Cognipeer/client-sdk/releases/tag/v1.0.0
+[1.0.5]: https://github.com/Cognipeer/client-sdk/releases/tag/v1.0.5

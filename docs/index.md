@@ -11,7 +11,7 @@ hero:
       link: /guide/getting-started
     - theme: alt
       text: View on GitHub
-      link: https://github.com/cognipeer/sdk
+      link: https://github.com/Cognipeer/client-sdk
 
 features:
   - icon: 🚀

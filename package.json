@@ -37,13 +37,17 @@
     "function-calling",
     "client-tools",
     "sdk",
-    "typescript"
+    "typescript",
+    "ai-agents",
+    "webchat",
+    "tool-calling",
+    "chat-widget"
   ],
   "author": "Cognipeer",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Cognipeer/client-sdk"
+    "url": "git+https://github.com/Cognipeer/client-sdk.git"
   },
   "bugs": {
     "url": "https://github.com/Cognipeer/client-sdk/issues"

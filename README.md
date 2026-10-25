@@ -8,7 +8,9 @@
 [![GitHub stars](https://img.shields.io/github/stars/Cognipeer/client-sdk?style=social)](https://github.com/Cognipeer/client-sdk)
 [![Docs](https://img.shields.io/badge/docs-docs.cognipeer.com-0A7CFF)](https://docs.cognipeer.com/client-sdk/)
 
-[Docs](https://docs.cognipeer.com/client-sdk/) · [Quick start](#quick-start) · [Examples](./examples) · [Changelog](./CHANGELOG.md)
+[Docs](https://docs.cognipeer.com/client-sdk/) · [Quick start](#quick-start) · [Examples](./examples) · [Changelog](./CHANGELOG.md) · [Contact](mailto:developer@cognipeer.com)
+
+> **Which package should I use?** This package and [`@cognipeer/client-js`](https://github.com/Cognipeer/client-js) both work with the Cognipeer AI API. Use `@cognipeer/sdk` for client-side tool execution, flows, contacts, channels or the embeddable webchat; `@cognipeer/client-js` is a smaller client for peers, conversations and app execution. For the self-hosted Cognipeer Console, use [`@cognipeer/console-sdk`](https://github.com/Cognipeer/console-sdk).
 
 ## Features
 
@@ -584,6 +586,8 @@ Contributions are welcome! Open an issue or pull request in the [GitHub reposito
 | [cognipeer-observability](https://github.com/Cognipeer/cognipeer-observability) | Drop-in agent tracing for LangChain, LangGraph, OpenAI Agents and OpenTelemetry |
 
 If this project is useful to you, a ⭐ on GitHub helps other developers find it.
+
+Questions or enterprise support: [developer@cognipeer.com](mailto:developer@cognipeer.com).
 
 ## License
 
